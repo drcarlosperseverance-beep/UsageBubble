@@ -13,8 +13,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class UsageWebViewActivity extends Activity {
-    private static final Pattern FIVE_HOUR = Pattern.compile("(?is)(?:5\\s*[- ]?hour|5h)[^%]{0,120}?(\\d{1,3})\\s*%");
-    private static final Pattern WEEKLY = Pattern.compile("(?is)weekly[^%]{0,120}?(\\d{1,3})\\s*%");
+    private static final Pattern FIVE_HOUR = Pattern.compile("(?is)(?:5 hours|5 horas|5h)[^%]{0,160}?([0-9]{1,3}) *%");
+    private static final Pattern WEEKLY = Pattern.compile("(?is)(?:weekly|semanal)[^%]{0,160}?([0-9]{1,3}) *%");
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         WebView web = new WebView(this);
