@@ -10,7 +10,22 @@ android {
         applicationId 'com.yamil.usagebubble'
         minSdk 26
         targetSdk 35
-        versionCode 1
-        versionName '0.1'
+        versionCode 3
+        versionName '1.0'
+    }
+
+    signingConfigs {
+        debugStable {
+            storeFile file('usagebubble-debug.keystore')
+            storePassword 'usagebubble'
+            keyAlias 'usagebubble'
+            keyPassword 'usagebubble'
+        }
+    }
+
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.debugStable
+        }
     }
 }

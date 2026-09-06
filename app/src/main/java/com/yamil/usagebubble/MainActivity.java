@@ -8,7 +8,6 @@ import android.os.Bundle;
 import android.provider.Settings;
 import android.view.View;
 import android.widget.Button;
-import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -17,6 +16,8 @@ import android.widget.Toast;
 public class MainActivity extends Activity {
     public static final String DEFAULT_URL = "https://chatgpt.com/codex/cloud/settings/analytics#usage";
     private EditText url;
+    private EditText interval;
+    private TextView values;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -41,17 +42,17 @@ public class MainActivity extends Activity {
         url.setHint("URL del panel de uso");
         root.addView(url);
 
-        EditText interval = new EditText(this);
+        interval = new EditText(this);
         interval.setSingleLine(true);
         interval.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);
-        interval.setText("15");
-        interval.setHint("Intervalo en minutos");
+        interval.setText(String.valueOf(UsageStore.intervalMinutes(this)));
+        interval.setHint("Intervalo en minutos (mínimo 2)");
         root.addView(interval);
 
-        CheckBox auto = new CheckBox(this);
-        auto.setText("Actualizar automáticamente mientras la burbuja esté activa");
-        auto.setChecked(true);
-        root.addView(auto);
+        TextView autoInfo = new TextView(this);
+        autoInfo.setText("La burbuja actualizará automáticamente mientras esté activa.");
+        autoInfo.setPadding(0, 8, 0, 12);
+        root.addView(autoInfo);
 
         Button login = new Button(this);
         login.setText("Abrir panel e iniciar sesión");
@@ -60,7 +61,7 @@ public class MainActivity extends Activity {
 
         Button start = new Button(this);
         start.setText("Activar burbuja flotante");
-        start.setOnClickListener(v -> startBubble(auto.isChecked()));
+        start.setOnClickListener(v -> startBubble());
         root.addView(start);
 
         Button stop = new Button(this);
@@ -68,7 +69,7 @@ public class MainActivity extends Activity {
         stop.setOnClickListener(v -> stopService(new Intent(this, OverlayService.class)));
         root.addView(stop);
 
-        TextView values = new TextView(this);
+        values = new TextView(this);
         values.setPadding(0, 22, 0, 0);
         values.setTextSize(18);
         values.setText(currentValues());
@@ -83,14 +84,14 @@ public class MainActivity extends Activity {
     }
 
     private void openReader() {
-        saveUrl();
+        saveSettings();
         Intent i = new Intent(this, UsageWebViewActivity.class);
         i.putExtra("url", url.getText().toString());
         startActivity(i);
     }
 
-    private void startBubble(boolean auto) {
-        saveUrl();
+    private void startBubble() {
+        saveSettings();
         if (!Settings.canDrawOverlays(this)) {
             Intent settings = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
                     Uri.parse("package:" + getPackageName()));
@@ -100,14 +101,23 @@ public class MainActivity extends Activity {
         }
         Intent i = new Intent(this, OverlayService.class);
         i.putExtra("url", url.getText().toString());
-        i.putExtra("auto", auto);
         startForegroundService(i);
         Toast.makeText(this, "Burbuja activada", Toast.LENGTH_SHORT).show();
     }
 
-    private void saveUrl() {
+    private void saveSettings() {
         String value = url.getText().toString().trim();
         getPreferences(MODE_PRIVATE).edit().putString("url", value).apply();
         getSharedPreferences("usage", MODE_PRIVATE).edit().putString("url", value).apply();
+        int minutes = 5;
+        try { minutes = Integer.parseInt(interval.getText().toString().trim()); }
+        catch (NumberFormatException ignored) {}
+        UsageStore.setIntervalMinutes(this, minutes);
+        interval.setText(String.valueOf(UsageStore.intervalMinutes(this)));
+    }
+
+    @Override protected void onResume() {
+        super.onResume();
+        if (values != null) values.setText(currentValues());
     }
 }

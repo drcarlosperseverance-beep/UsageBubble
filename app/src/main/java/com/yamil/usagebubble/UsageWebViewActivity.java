@@ -3,21 +3,23 @@ package com.yamil.usagebubble;
 import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.webkit.CookieManager;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.webkit.JavascriptInterface;
-import java.util.Locale;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class UsageWebViewActivity extends Activity {
-    private static final Pattern FIVE_HOUR = Pattern.compile("(?is)(?:5 hours|5 horas|5h)[^%]{0,160}?([0-9]{1,3}) *%");
-    private static final Pattern WEEKLY = Pattern.compile("(?is)(?:weekly|semanal)[^%]{0,160}?([0-9]{1,3}) *%");
+    public static final String ACTION_USAGE_UPDATED = "com.yamil.usagebubble.USAGE_UPDATED";
+    private final Handler handler = new Handler(Looper.getMainLooper());
+    private WebView web;
+    private int pollCount;
+
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
-        WebView web = new WebView(this);
+        web = new WebView(this);
         WebSettings settings = web.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
@@ -26,7 +28,8 @@ public class UsageWebViewActivity extends Activity {
         web.addJavascriptInterface(new ReaderBridge(), "UsageBubble");
         web.setWebViewClient(new WebViewClient() {
             @Override public void onPageFinished(WebView view, String page) {
-                view.evaluateJavascript("UsageBubble.receive(document.body.innerText)", null);
+                pollCount = 0;
+                pollPage();
             }
         });
         setContentView(web);
@@ -34,21 +37,36 @@ public class UsageWebViewActivity extends Activity {
         web.loadUrl(url == null ? MainActivity.DEFAULT_URL : url);
     }
 
+    private void pollPage() {
+        if (web == null || pollCount >= 30) return;
+        pollCount++;
+        web.evaluateJavascript(
+                "UsageBubble.receive(document.body ? document.body.innerText : '')", null);
+        handler.postDelayed(this::pollPage, 1000L);
+    }
+
     private class ReaderBridge {
         @JavascriptInterface public void receive(String raw) {
             if (raw == null) return;
-            String text = raw.replace("\\n", " ").replace("\\r", " ");
-            String five = find(FIVE_HOUR, text);
-            String weekly = find(WEEKLY, text);
+            String[] values = UsageParser.parse(raw);
+            String five = values[0];
+            String weekly = values[1];
             if (!"--".equals(five) || !"--".equals(weekly)) {
                 UsageStore.save(UsageWebViewActivity.this, five, weekly);
-                sendBroadcast(new Intent("com.yamil.usagebubble.USAGE_UPDATED"));
+                Intent update = new Intent(ACTION_USAGE_UPDATED);
+                update.setPackage(getPackageName());
+                sendBroadcast(update);
             }
         }
     }
 
-    private String find(Pattern pattern, String text) {
-        Matcher m = pattern.matcher(text);
-        return m.find() ? m.group(1) + "%" : "--";
+    @Override protected void onDestroy() {
+        handler.removeCallbacksAndMessages(null);
+        if (web != null) {
+            web.removeJavascriptInterface("UsageBubble");
+            web.destroy();
+            web = null;
+        }
+        super.onDestroy();
     }
 }

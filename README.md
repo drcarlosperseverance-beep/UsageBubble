@@ -1,15 +1,20 @@
-# Usage Bubble — primera versión
+# Usage Bubble — versión funcional
 
 Aplicación Android personal que muestra una burbuja flotante para abrir el
 panel de uso de ChatGPT Work/Codex.
 
-## Estado actual
+## Funciones
 
 - Proyecto Android nativo, Java.
 - Burbuja flotante mediante `SYSTEM_ALERT_WINDOW`.
 - Pantalla de configuración.
 - WebView separado para iniciar sesión en el panel indicado por el usuario.
-- Guarda solamente los últimos porcentajes cuando se implemente el parser.
+- Lee porcentajes en español o inglés, incluso cuando aparecen después de cargar la página.
+- Actualiza en segundo plano cada 2 minutos o más, según la configuración.
+- Muestra el tiempo transcurrido desde la última lectura válida.
+- La burbuja se puede arrastrar y conserva su posición.
+- Conserva el último dato válido si una actualización falla.
+- Usa una firma de desarrollo estable para permitir futuras actualizaciones.
 
 ## Importante
 
@@ -17,11 +22,12 @@ La página de uso no tiene una API pública documentada para terceros. Por eso
 el lector debe ajustarse al texto real que aparece después de iniciar sesión.
 No se deben copiar contraseñas, códigos ni cookies al chat.
 
-## Próximo paso
+## Uso
 
-Abrir el proyecto, observar el texto exacto que devuelve el panel y completar
-el parser de los porcentajes de 5 horas y semanal. Luego se añade la
-actualización automática y el diseño final de la burbuja.
+Primero abre el panel e inicia sesión. Después activa la burbuja. La app mantiene
+una WebView mínima en un servicio visible mediante notificación y vuelve a leer
+el panel con el intervalo configurado. Si Android fuerza el cierre del servicio,
+hay que volver a activar la burbuja.
 
 ## Compilar desde el teléfono mediante GitHub Actions
 
